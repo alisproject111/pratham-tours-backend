@@ -1,4 +1,4 @@
-import { PDFParse } from 'pdf-parse';
+// PDFParse imported dynamically to prevent Vercel DOMMatrix crash
 import { GoogleGenAI } from '@google/genai';
 import { transporter } from '../../../config/email.js';
 import prisma from '../../../config/prisma.js'; // Needed for other relation fetches
@@ -480,6 +480,15 @@ export const extractFromPdf = async (req, res) => {
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({ success: false, message: "GEMINI_API_KEY is not configured in backend .env file" });
     }
+
+    // Polyfill globals required by pdfjs-dist in Node 18+ to prevent crashes
+    if (typeof global.DOMMatrix === 'undefined') global.DOMMatrix = class DOMMatrix {};
+    if (typeof global.Path2D === 'undefined') global.Path2D = class Path2D {};
+    if (typeof global.ImageData === 'undefined') global.ImageData = class ImageData {};
+
+    // Dynamically import pdf-parse to prevent top-level module load crashes
+    const pdfParseModule = await import('pdf-parse');
+    const PDFParse = pdfParseModule.PDFParse || pdfParseModule.default;
 
     const parser = new PDFParse({ data: req.file.buffer });
     const pdfData = await parser.getText();
