@@ -65,6 +65,8 @@ const allowedOrigins = [
   "https://prathamtours.com",
   "https://www.prathamtours.com",
   "https://pratham-tours-client-smoky.vercel.app",
+  "https://pratham-frontend-deploy-zvtp.vercel.app",
+  "https://pratham-admin-deploy.vercel.app"
 ];
 
 if (process.env.FRONTEND_URL) allowedOrigins.push(process.env.FRONTEND_URL);
