@@ -1,0 +1,270 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model BookingRequest {
+  id               Int        @id @default(autoincrement())
+  request_id       String     @unique
+  customer_name    String
+  customer_email   String
+  customer_phone   String
+  customer_gender  String?
+  customer_age     Int?
+  travel_date      DateTime
+  num_travelers    Int
+  package_name     String
+  package_location String?
+  package_duration String?
+  package_price    String?
+  total_price      Float?
+  special_requests String?
+  request_date     DateTime   @default(now())
+  status           String     @default("pending")
+  travelers        Traveler[]
+
+  @@map("booking_requests")
+}
+
+model Traveler {
+  id               Int            @id @default(autoincrement())
+  booking_id       Int
+  name             String
+  gender           String?
+  age              String?
+  lead_traveler_id Int?
+  booking          BookingRequest @relation(fields: [booking_id], references: [id], onDelete: Cascade)
+  lead_traveler    Traveler?      @relation("LeadTraveler", fields: [lead_traveler_id], references: [id])
+  dependents       Traveler[]     @relation("LeadTraveler")
+
+  @@map("travelers")
+}
+
+model CustomPackageRequest {
+  id                 Int      @id @default(autoincrement())
+  full_name          String
+  email              String
+  phone              String
+  departure_location String
+  destination        String
+  start_date         DateTime
+  duration           String
+  budget             String
+  travelers          Int      @default(1)
+  activities         String?
+  accommodation      String   @default("standard")
+  transportation     String   @default("public")
+  special_requests   String?
+  status             String   @default("pending")
+  request_date       DateTime @default(now())
+
+  @@map("custom_package_requests")
+}
+
+model Package {
+  id               Int      @id @default(autoincrement())
+  name             String
+  location         String?
+  category         String?
+  featured         Boolean  @default(false)
+  price            String?
+  duration         String?
+  description      String?
+  exclusions       String[]
+  highlights       String[]
+  image            String?
+  inclusions       String[]
+  itinerary        Json?
+  originalPrice    String?
+  rating           Float?
+  reviews          Int?
+  shortDescription String?
+  pdfUrl           String?
+  galleryImages    String[]
+
+  @@map("packages")
+}
+
+model Destination {
+  id              Int     @id @default(autoincrement())
+  name            String
+  description     String?
+  favorableMonths Int[]
+  image           String?
+
+  @@map("destinations")
+}
+
+model Booking {
+  id               Int      @id @default(autoincrement())
+  order_id         String   @unique
+  customer_name    String
+  customer_email   String
+  customer_phone   String
+  customer_gender  String?
+  customer_age     Int?
+  travel_date      DateTime
+  num_travelers    Int
+  package_id       String?
+  package_name     String
+  package_location String?
+  package_duration String?
+  package_price    String?
+  total_price      Float?
+  payment_status   String   @default("pending")
+  transaction_id   String?
+  booking_date     DateTime @default(now())
+  status           String   @default("confirmed")
+  special_requests String?
+
+  @@map("bookings")
+}
+
+model SiteSetting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  name          String
+  email         String   @unique
+  password      String
+  role          String   @default("SALES_EXECUTIVE")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  branchId      Int?
+  refreshToken  String?
+  managedBranch Branch?  @relation("BranchManager")
+  assignedLeads Lead[]   @relation("LeadAssignee")
+  branch        Branch?  @relation("BranchUsers", fields: [branchId], references: [id])
+  notifications Notification[] @relation("UserNotifications")
+
+  @@map("users")
+}
+
+model Branch {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  city      String
+  managerId Int?     @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  email     String?
+  isMain    Boolean  @default(false)
+  phone     String?
+  status    String   @default("ACTIVE")
+  manager   User?    @relation("BranchManager", fields: [managerId], references: [id])
+  leads     Lead[]   @relation("BranchLeads")
+  users     User[]   @relation("BranchUsers")
+
+  @@map("branches")
+}
+
+model Lead {
+  id           Int       @id @default(autoincrement())
+  name         String
+  email        String?
+  phone        String
+  destination  String?
+  origin       String?
+  priceRange   String?
+  foodPref     String?
+  inclusions   String[]
+  theme        String[]
+  source       String    @default("WEBSITE")
+  type         String    @default("LEAD")
+  status       String    @default("NEW")
+  branchId     Int?
+  assignedToId Int?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  isDuplicate  Boolean   @default(false)
+  leadCategory String?
+  numDays          Int?
+  pax              Int?
+  travelDate       DateTime?
+  passengerDetails Json?
+  assignedTo   User?     @relation("LeadAssignee", fields: [assignedToId], references: [id])
+  branch       Branch?   @relation("BranchLeads", fields: [branchId], references: [id])
+  notes        Note[]
+  tasks        Task[]
+  documents    CustomerDocument[]
+
+  @@map("leads")
+}
+
+model Note {
+  id        Int      @id @default(autoincrement())
+  leadId    Int
+  content   String
+  createdBy Int
+  createdAt DateTime @default(now())
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@map("notes")
+}
+
+model Task {
+  id            Int       @id @default(autoincrement())
+  leadId        Int
+  title         String
+  note          String?
+  dueDate       DateTime
+  isCompleted   Boolean   @default(false)
+  reminderSent  Boolean   @default(false)
+  snoozedUntil  DateTime?
+  assignedToId  Int?
+  createdBy     Int
+  createdAt     DateTime  @default(now())
+  lead          Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@map("tasks")
+}
+
+model Notification {
+  id            Int      @id @default(autoincrement())
+  title         String
+  message       String
+  type          String   @default("INFO")
+  isRead        Boolean  @default(false)
+  userId        Int
+  relatedEntity String?
+  entityId      Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model CustomerDocument {
+  id                 Int       @id @default(autoincrement())
+  leadId             Int
+  documentType       String
+  customDocumentName String?
+  category           String
+  fileUrl            String
+  originalFileName   String
+  storedFileName     String
+  mimeType           String
+  fileSize           Int
+  docNumber          String?
+  issueDate          DateTime?
+  expiryDate         DateTime?
+  passengerIndex     Int?
+  passengerLabel     String?
+  uploadedById       Int
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  lead               Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@map("customer_documents")
+}
