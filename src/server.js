@@ -174,11 +174,30 @@ app.use("/api", settingsRouter);
 app.use("/api/notifications", notificationRoutes);
 
 // Health check endpoint
-app.get("/", (req, res) => {
+app.get("/", async (req, res) => {
+  let dbStatus = "disconnected";
+  try {
+    // Perform a lightweight query to check if the database is accessible
+    await prisma.$queryRaw`SELECT 1`;
+    dbStatus = "connected";
+  } catch (error) {
+    dbStatus = "error";
+    console.error("Healthcheck DB connection error:", error.message);
+  }
+
   res.json({
     message: "Pratham Tours Backend API is running",
     status: "healthy",
     timestamp: new Date().toISOString(),
+    features: {
+      database: dbStatus,
+      emailService: process.env.EMAIL_USER ? "configured" : "missing_config",
+      aiPdfExtraction: process.env.GEMINI_API_KEY ? "configured" : "missing_config",
+      paymentGateway: process.env.CASHFREE_APP_ID ? "configured" : "missing_config",
+      webSockets: process.env.VERCEL === "1" ? "disabled_on_vercel" : "enabled",
+      backgroundCronJobs: process.env.VERCEL === "1" ? "disabled_on_vercel" : "enabled",
+      environment: process.env.VERCEL === "1" ? "vercel_serverless" : "local_server",
+    }
   });
 });
 
